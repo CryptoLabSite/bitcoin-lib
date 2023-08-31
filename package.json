@@ -2,8 +2,9 @@
   "name": "bitcoin-lib",
   "version": "1.0.0",
   "description": "A simple bitcoin library written in JavaScript.",
-  "main": "src/index.js",
+  "main": "",
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
