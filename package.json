@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/CryptoLabSite/bitcoin-lib/issues"
   },
-  "homepage": "https://github.com/CryptoLabSite/bitcoin-lib#readme"
+  "homepage": "https://github.com/CryptoLabSite/bitcoin-lib#readme",
+  "devDependencies": {
+    "jest": "^29.6.4"
+  }
 }
