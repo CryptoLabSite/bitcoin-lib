@@ -20,5 +20,8 @@
   "homepage": "https://github.com/CryptoLabSite/bitcoin-lib#readme",
   "devDependencies": {
     "jest": "^29.6.4"
+  },
+  "dependencies": {
+    "smart-buffer": "^4.2.0"
   }
 }
