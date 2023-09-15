@@ -1,4 +1,4 @@
-const {pow, mod} = import('./helper');
+import {mod, pow} from './helper';
 
 export class FieldElement {
     constructor(public num: bigint, public prime: bigint) {
@@ -7,7 +7,7 @@ export class FieldElement {
         }
     }
 
-    toString() {
+    toString(): string {
         return `FieldElement_${this.prime}(${this.num})`;
     }
 
@@ -32,7 +32,7 @@ export class FieldElement {
         return new FieldElement(num, this.prime);
     }
 
-    subtract(other: FieldElement): FieldElement {
+    sub(other: FieldElement): FieldElement {
         if (this.prime !== other.prime) {
             throw new Error('Cannot subtract two numbers in different Fields');
         }
@@ -41,7 +41,7 @@ export class FieldElement {
         return new FieldElement(num, this.prime);
     }
 
-    multiply(other: FieldElement): FieldElement {
+    mul(other: FieldElement): FieldElement {
         if (this.prime !== other.prime) {
             throw new Error('Cannot multiply two numbers in different Fields');
         }
@@ -50,13 +50,12 @@ export class FieldElement {
         return new FieldElement(num, this.prime);
     }
 
-    div(other: FieldElement) {
+    div(other: FieldElement): FieldElement {
         if (this.prime !== other.prime) {
             throw new Error('Cannot divide two numbers in different Fields');
         }
 
         const num = (this.num * pow(other.num, this.prime - 2n, this.prime)) % this.prime;
-
         return new FieldElement(num, this.prime);
     }
 
@@ -66,8 +65,11 @@ export class FieldElement {
         return new FieldElement(num, this.prime);
     }
 
-    rmul(coefficient: bigint) {
-        const num = (this.num * coefficient) % this.prime;
+    scalarMul(scalar: bigint): FieldElement {
+        if (scalar <= 0n) {
+            throw new Error('scalar must be > 0');
+        }
+        const num = (this.num * scalar) % this.prime;
         return new FieldElement(num, this.prime);
     }
 }

@@ -1,7 +1,7 @@
 import * as crypto from "crypto";
 import {SmartBuffer} from "smart-buffer";
 
-export function pow(base: bigint, exponent: number, modulus: bigint): bigint {
+export function pow(base: bigint, exponent: bigint, modulus: bigint): bigint {
     if (modulus === 1n) return 0n;
     let result = 1n;
     base = mod(base, modulus);
@@ -17,7 +17,7 @@ export function pow(base: bigint, exponent: number, modulus: bigint): bigint {
 }
 
 // bigint mod that produces a positive value
-function mod(n: bigint, m: bigint): bigint {
+export function mod(n: bigint, m: bigint): bigint {
     return ((n % m) + m) % m;
 }
 
