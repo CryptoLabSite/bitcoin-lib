@@ -2,7 +2,7 @@ import {FieldElement} from "../src/FieldElement";
 
 describe('FieldElementTest', () => {
 
-    test('test_ne', () => {
+    test('ne', () => {
         const a = new FieldElement(2n, 31n);
         const b = new FieldElement(2n, 31n);
         const c = new FieldElement(15n, 31n);
@@ -12,7 +12,7 @@ describe('FieldElementTest', () => {
         expect(!a.equals(b)).toBeFalsy();
     });
 
-    test('test_add', () => {
+    test('add', () => {
         let a = new FieldElement(2n, 31n);
         let b = new FieldElement(15n, 31n);
         expect(a.add(b).equals(new FieldElement(17n, 31n))).toBeTruthy();
@@ -22,7 +22,7 @@ describe('FieldElementTest', () => {
         expect(a.add(b).equals(new FieldElement(7n, 31n))).toBeTruthy();
     });
 
-    test('test_sub', () => {
+    test('sub', () => {
         let a = new FieldElement(29n, 31n);
         let b = new FieldElement(4n, 31n);
         expect(a.sub(b).equals(new FieldElement(25n, 31n))).toBeTruthy();
@@ -32,13 +32,13 @@ describe('FieldElementTest', () => {
         expect(a.sub(b).equals(new FieldElement(16n, 31n))).toBeTruthy();
     });
 
-    test('test_mul', () => {
+    test('mul', () => {
         let a = new FieldElement(24n, 31n);
         let b = new FieldElement(19n, 31n);
         expect(a.mul(b).equals(new FieldElement(22n, 31n))).toBeTruthy();
     });
 
-    test('test_pow', () => {
+    test('pow', () => {
         let a = new FieldElement(17n, 31n);
         expect(a.pow(3n).equals(new FieldElement(15n, 31n))).toBeTruthy();
 
@@ -47,7 +47,7 @@ describe('FieldElementTest', () => {
         expect(a.pow(5n).mul(b).equals(new FieldElement(16n, 31n))).toBeTruthy();
     });
 
-    test('test_div', () => {
+    test('div', () => {
         let a = new FieldElement(3n, 31n);
         let b = new FieldElement(24n, 31n);
         expect(a.div(b).equals(new FieldElement(4n, 31n))).toBeTruthy();
