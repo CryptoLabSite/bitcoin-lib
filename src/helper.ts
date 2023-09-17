@@ -211,3 +211,23 @@ function u64ToEndian(num: number, endian = 'be') {
         ? toBufferBE(BigInt(num), 8)
         : toBufferLE(BigInt(num), 8);
 }
+
+export function randomBigInt(max: bigint): bigint {
+    const buf = Buffer.alloc(32);
+    for (let i = 31; i >= 0; i--) {
+        let randomByte = 0;
+        for (let j = 0; j < 8; j++) {
+            const randomBit = Math.round(Math.random());
+            randomByte |= (randomBit << j);
+        }
+
+        buf.fill(Buffer.alloc(1, randomByte), i, i + 1);
+        if (toBigIntBE(buf) >= max) {
+            buf.fill(Buffer.alloc(1, 0x0), i, i + 1);
+            return toBigIntBE(buf);
+        }
+    }
+
+    return toBigIntBE(buf);
+}
+
