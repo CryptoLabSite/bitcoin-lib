@@ -12,7 +12,7 @@ export class Signature {
     let result;
 
     // convert the r part to bytes
-    let rBin = this.r.toString(16).padStart(64, '0');
+    const rBin = this.r.toString(16).padStart(64, '0');
     let rBinBuffer = Buffer.from(rBin, 'hex');
     // if rbin has a high bit, add a 00
     if (rBinBuffer[0] >= 128) {
@@ -25,7 +25,7 @@ export class Signature {
       rBinBuffer,
     ]);
 
-    let sBin = this.s.toString(16).padStart(64, '0');
+    const sBin = this.s.toString(16).padStart(64, '0');
     let sBinBuffer = Buffer.from(sBin, 'hex');
     if (sBinBuffer[0] >= 128) {
       sBinBuffer = Buffer.concat([Buffer.from([0]), sBinBuffer]);

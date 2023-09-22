@@ -67,7 +67,7 @@ export class PrivateKey {
     }
   }
 
-  wif(compressed: boolean = true, testnet: boolean = false): string {
+  wif(compressed = true, testnet = false): string {
     const secretBytes = toBufferBE(this.secret, 32);
 
     let prefix, suffix;

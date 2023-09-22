@@ -41,7 +41,7 @@ export class S256Point extends FinitePoint {
     return new S256Point(x, y);
   }
 
-  address(compressed: boolean = true, testnet: boolean = false): string {
+  address(compressed = true, testnet = false): string {
     const sec = this.sec(compressed);
     const secHash160 = hash160(sec);
 
@@ -68,7 +68,7 @@ export class S256Point extends FinitePoint {
     return total.x!.num === sig.r;
   }
 
-  sec(compressed: boolean = true): Buffer {
+  sec(compressed = true): Buffer {
     if (compressed) {
       if (this.y!.num % 2n === 0n) {
         return Buffer.concat([

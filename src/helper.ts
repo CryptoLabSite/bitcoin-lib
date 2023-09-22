@@ -39,7 +39,7 @@ export function hash256(data: Buffer | string) {
   return _sha256().update(sha256Result).digest();
 }
 
-const BASE58_ALPHABET: string =
+const BASE58_ALPHABET =
   '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 export function encodeBase58(data: Buffer): string {
   let zeroCount = 0;
@@ -53,7 +53,7 @@ export function encodeBase58(data: Buffer): string {
 
   let num = toBigIntBE(data);
   let result = '';
-  let prefix = '1'.repeat(zeroCount);
+  const prefix = '1'.repeat(zeroCount);
   while (num > 0n) {
     const mod = num % 58n;
     num = num / 58n;
@@ -74,7 +74,7 @@ export function decodeBase58(data: string): Buffer {
     num *= 58n;
     num += BigInt(BASE58_ALPHABET.indexOf(b));
   }
-  let combined = toBufferBE(num, 25);
+  const combined = toBufferBE(num, 25);
   const checksum = combined.subarray(combined.length - 4);
   const calculatedCheckSum = hash256(combined.subarray(0, combined.length - 4));
   if (calculatedCheckSum.equals(checksum)) {
