@@ -1,7 +1,7 @@
 import { TxIn } from './TxIn';
 import { TxOut } from './TxOut';
 import { SmartBuffer } from 'smart-buffer';
-import { encodeVarint, hash256, readVarint, reverseBuffer } from "./helper";
+import { encodeVarint, hash256, readVarint, reverseBuffer } from './helper';
 
 export class Tx {
   constructor(

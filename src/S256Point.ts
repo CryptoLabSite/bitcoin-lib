@@ -1,13 +1,6 @@
 import { FinitePoint } from './FinitePoint';
 import { P, S256Field } from './S256Field';
-import {
-  encodeBase58Checksum,
-  hash160,
-  mod,
-  pow,
-  toBufferBE,
-  toBufferLE,
-} from './helper';
+import { encodeBase58Checksum, hash160, mod, pow, toBufferBE } from './helper';
 import { Signature } from './Signature';
 
 const A = 0n;
