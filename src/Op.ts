@@ -1,6 +1,4 @@
-export type Stack = {
-  stack: Buffer[];
-};
+export type Stack = Buffer[];
 
 export function op0(stack: Stack): boolean {
   // stack.push(encodeNum(0));
