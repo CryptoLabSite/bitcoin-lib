@@ -164,4 +164,80 @@ export class Script {
     const total = result.length;
     return Buffer.concat([encodeVarint(total), result]);
   }
+
+
+
+  verifyInput = async (inputIndex: number): Promise<boolean> => {
+    const txIn = this.txIns[inputIndex];
+    const scriptPubkey = await txIn.scriptPubkey(this.testnet);
+    let redeemScript: Script | undefined;
+    let z: bigint;
+    let witness: Buffer[] | undefined;
+    if (scriptPubkey.isP2SH()) {
+      // last cmd of p2sh will be the redeem script
+      const cmd = (txIn.scriptSig.cmds[
+      txIn.scriptSig.cmds.length - 1
+        ] as PushDataOpcode).data;
+      // turn redeem script into valid script by appending varint of its length
+      const rawRedeem = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
+      redeemScript = Script.parse(SmartBuffer.fromBuffer(rawRedeem));
+      if (redeemScript.isP2WPKH()) {
+        z = await this.sigHashBIP143(inputIndex, redeemScript);
+        witness = txIn.witness;
+      } else if (redeemScript.isP2WSH()) {
+        // last item of witness field contains witnessScript
+        const cmd = txIn.witness[txIn.witness.length - 1];
+        const rawWitness = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
+        const witnessScript = Script.parse(SmartBuffer.fromBuffer(rawWitness));
+        z = await this.sigHashBIP143(inputIndex, undefined, witnessScript);
+        witness = txIn.witness;
+      } else {
+        z = await this.sigHash(inputIndex, redeemScript);
+      }
+    } else {
+      if (scriptPubkey.isP2WPKH()) {
+        z = await this.sigHashBIP143(inputIndex);
+        witness = txIn.witness;
+      } else if (scriptPubkey.isP2WSH()) {
+        // last item of witness field contains witnessScript
+        const cmd = txIn.witness[txIn.witness.length - 1];
+        const rawWitness = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
+        const witnessScript = Script.parse(SmartBuffer.fromBuffer(rawWitness));
+        z = await this.sigHashBIP143(inputIndex, undefined, witnessScript);
+        witness = txIn.witness;
+      } else if (scriptPubkey.isP2Taproot()) {
+        z = await this.sigHashSchnorr(inputIndex);
+        witness = txIn.witness;
+      } else {
+        z = await this.sigHash(inputIndex);
+      }
+    }
+    const combinedScript = txIn.scriptSig.add(scriptPubkey);
+    return combinedScript.evaluate(z, witness || []);
+  };
+
+
+//       def verify_input(self, input_index):
+//         """Returns whether the input has a valid signature"""
+//         # get the relevant input
+//         tx_in = self.tx_ins[input_index]
+//         # get the script_pubkey of the input
+//         script_pubkey = tx_in.script_pubkey(network=self.network)
+//         # check to see if the script_pubkey is a p2sh
+//         if script_pubkey.is_p2sh_script_pubkey():
+//             # the last command has to be the redeem script to trigger
+//             command = tx_in.script_sig.commands[-1]
+//             # parse the redeem script
+//             raw_redeem = int_to_little_endian(len(command), 1) + command
+//             redeem_script = Script.parse(BytesIO(raw_redeem))
+//         else:
+//             redeem_script = None
+//         # get the sig_hash (z)
+//         z = self.sig_hash(input_index, redeem_script)
+//         # combine the scripts
+//         combined_script = tx_in.script_sig + tx_in.script_pubkey(self.network)
+//         # evaluate the combined script
+//         return combined_script.evaluate(z)
+
+
 }
