@@ -231,3 +231,7 @@ export function randomBigInt(max: bigint): bigint {
 
   return toBigIntBE(buf);
 }
+
+export const SIGHASH_ALL = 1;
+export const SIGHASH_NONE = 2;
+export const SIGHASH_SINGLE = 3;

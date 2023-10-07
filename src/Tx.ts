@@ -1,8 +1,16 @@
 import { TxIn } from './TxIn';
 import { TxOut } from './TxOut';
 import { SmartBuffer } from 'smart-buffer';
-import { encodeVarint, hash256, readVarint, reverseBuffer } from './helper';
-import { Script } from "./Script";
+import {
+  encodeVarint,
+  hash256,
+  readVarint,
+  reverseBuffer,
+  SIGHASH_ALL,
+  toBigIntBE,
+} from './helper';
+import { Script } from './Script';
+import { PrivateKey } from './PrivateKey';
 
 export class Tx {
   constructor(
@@ -83,52 +91,115 @@ export class Tx {
   // 1. replace the ScriptSig of the input we're signing with the ScriptPubkey of the corresponding output
   // 2. append hash type as 4 bytes little endian to the end of the modified tx serialization
   // 3. hash256 the result as the return value
-  sigHash(inputIndex: number, redeemScript?: Script): bigint {
-    return 0n;
+  async sigHash(inputIndex: number, redeemScript?: Script): Promise<bigint> {
+    const s = new SmartBuffer();
+    s.writeUInt32LE(this.version);
+    s.writeBuffer(encodeVarint(this.txIns.length));
+
+    for (const [i, txIn] of this.txIns.entries()) {
+      let scriptSig = undefined;
+      if (i === inputIndex) {
+        scriptSig = redeemScript || (await txIn.scriptPubkey(this.testnet));
+      }
+      s.writeBuffer(
+        new TxIn(
+          txIn.prevTx,
+          txIn.prevIndex,
+          scriptSig,
+          txIn.sequence,
+        ).serialize(),
+      );
+    }
+
+    s.writeBuffer(encodeVarint(this.txOuts.length));
+    for (const txOut of this.txOuts) {
+      s.writeBuffer(txOut.serialize());
+    }
+    s.writeUInt32LE(this.locktime);
+    s.writeUInt32LE(SIGHASH_ALL);
+    const h256 = hash256(s.toBuffer());
+    return toBigIntBE(h256);
   }
 
-  //   def sig_hash(self, input_index, redeem_script=None):
-//         """Returns the integer representation of the hash that needs to get
-//         signed for index input_index"""
-//         # create the serialization per spec
-//         # start with version: int_to_little_endian in 4 bytes
-//         s = int_to_little_endian(self.version, 4)
-//         # next, how many inputs there are: encode_varint
-//         s += encode_varint(len(self.tx_ins))
-//         # loop through each input: for i, tx_in in enumerate(self.tx_ins)
-//         for i, tx_in in enumerate(self.tx_ins):
-//             # if the input index is the one we're signing
-//             if i == input_index:
-//                 # if the RedeemScript was passed in, that's the ScriptSig
-//                 if redeem_script:
-//                     script_sig = redeem_script
-//                 # otherwise the previous tx's ScriptPubkey is the ScriptSig
-//                 else:
-//                     script_sig = tx_in.script_pubkey(self.network)
-//             # Otherwise, the ScriptSig is empty
-//             else:
-//                 script_sig = None
-//             # create a new TxIn with the same parameters
-//             #  as tx_in, but change the script_sig
-//             new_tx_in = TxIn(
-//                 prev_tx=tx_in.prev_tx,
-//                 prev_index=tx_in.prev_index,
-//                 script_sig=script_sig,
-//                 sequence=tx_in.sequence,
-//             )
-//             # add the serialization of the new TxIn
-//             s += new_tx_in.serialize()
-//         # add how many outputs there are using encode_varint
-//         s += encode_varint(len(self.tx_outs))
-//         # add the serialization of each output
-//         for tx_out in self.tx_outs:
-//             s += tx_out.serialize()
-//         # add the locktime using int_to_little_endian in 4 bytes
-//         s += int_to_little_endian(self.locktime, 4)
-//         # add SIGHASH_ALL using int_to_little_endian in 4 bytes
-//         s += int_to_little_endian(SIGHASH_ALL, 4)
-//         # hash256 the serialization
-//         h256 = hash256(s)
-//         # convert the result to an integer using int.from_bytes(x, 'big')
-//         return int.from_bytes(h256, "big")
+  async verifyInput(inputIndex: number): Promise<boolean> {
+    // todo
+    return false;
+
+    // const txIn = this.txIns[inputIndex];
+    // const scriptPubkey = await txIn.scriptPubkey(this.testnet);
+    // let redeemScript: Script | undefined;
+    // let z: bigint;
+    // let witness: Buffer[] | undefined;
+    // if (scriptPubkey.isP2SH()) {
+    //   // last cmd of p2sh will be the redeem script
+    //   const cmd = (txIn.scriptSig.cmds[
+    //   txIn.scriptSig.cmds.length - 1
+    //     ] as PushDataOpcode).data;
+    //   // turn redeem script into valid script by appending varint of its length
+    //   const rawRedeem = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
+    //   redeemScript = Script.parse(SmartBuffer.fromBuffer(rawRedeem));
+    //   if (redeemScript.isP2WPKH()) {
+    //     z = await this.sigHashBIP143(inputIndex, redeemScript);
+    //     witness = txIn.witness;
+    //   } else if (redeemScript.isP2WSH()) {
+    //     // last item of witness field contains witnessScript
+    //     const cmd = txIn.witness[txIn.witness.length - 1];
+    //     const rawWitness = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
+    //     const witnessScript = Script.parse(SmartBuffer.fromBuffer(rawWitness));
+    //     z = await this.sigHashBIP143(inputIndex, undefined, witnessScript);
+    //     witness = txIn.witness;
+    //   } else {
+    //     z = await this.sigHash(inputIndex, redeemScript);
+    //   }
+    // } else {
+    //   if (scriptPubkey.isP2WPKH()) {
+    //     z = await this.sigHashBIP143(inputIndex);
+    //     witness = txIn.witness;
+    //   } else if (scriptPubkey.isP2WSH()) {
+    //     // last item of witness field contains witnessScript
+    //     const cmd = txIn.witness[txIn.witness.length - 1];
+    //     const rawWitness = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
+    //     const witnessScript = Script.parse(SmartBuffer.fromBuffer(rawWitness));
+    //     z = await this.sigHashBIP143(inputIndex, undefined, witnessScript);
+    //     witness = txIn.witness;
+    //   } else if (scriptPubkey.isP2Taproot()) {
+    //     z = await this.sigHashSchnorr(inputIndex);
+    //     witness = txIn.witness;
+    //   } else {
+    //     z = await this.sigHash(inputIndex);
+    //   }
+    // }
+    // const combinedScript = txIn.scriptSig.add(scriptPubkey);
+    // return combinedScript.evaluate(z, witness || []);
+  }
+
+  async verify(): Promise<boolean> {
+    if ((await this.fee(this.testnet)) < 0n) {
+      return false;
+    }
+
+    for (let i = 0; i < this.txIns.length; i++) {
+      if (!this.verifyInput(i)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  async signInput(
+    inputIndex: number,
+    privateKey: PrivateKey,
+  ): Promise<boolean> {
+    const z = await this.sigHash(inputIndex);
+    const der = privateKey.sign(z).der();
+    const sig = Buffer.concat([der, Buffer.alloc(1, SIGHASH_ALL)]);
+    const sec = privateKey.point.sec();
+    this.txIns[inputIndex].scriptSig = new Script([
+      { data: sig, dataLength: sig.length },
+      { data: sec, dataLength: sec.length },
+    ]);
+
+    return this.verifyInput(inputIndex);
+  }
 }
