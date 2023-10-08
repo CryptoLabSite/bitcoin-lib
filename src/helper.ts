@@ -247,8 +247,10 @@ export function h160ToP2PKHAddress(h160: Buffer, testnet = false): string {
 export function h160ToP2SHAddress(h160: Buffer, testnet = false): string {
   let prefix: Buffer;
   if (testnet) {
+    // after base58 encoding, this will be '2'
     prefix = Buffer.alloc(1, 0xc4);
   } else {
+    // after base58 encoding, this will be '3'
     prefix = Buffer.alloc(1, 0x05);
   }
 

@@ -121,56 +121,25 @@ export class Tx {
     return toBigIntBE(h256);
   }
 
+  // verify if the scriptSig can unlock the scriptPubkey
   async verifyInput(inputIndex: number): Promise<boolean> {
-    // todo
-    return false;
+    const txIn = this.txIns[inputIndex];
+    const scriptPubkey = await txIn.scriptPubkey(this.testnet);
+    let redeemScript: Script | undefined;
+    let z: bigint;
+    if (scriptPubkey.isP2SHScriptPubkey()) {
+    } else {
+      if (scriptPubkey.isP2WPKHScriptPubkey()) {
+      } else if (scriptPubkey.isP2WSHScriptPubkey()) {
+      } else if (scriptPubkey.isP2TaprootScriptPubkey()) {
 
-    // const txIn = this.txIns[inputIndex];
-    // const scriptPubkey = await txIn.scriptPubkey(this.testnet);
-    // let redeemScript: Script | undefined;
-    // let z: bigint;
-    // let witness: Buffer[] | undefined;
-    // if (scriptPubkey.isP2SH()) {
-    //   // last cmd of p2sh will be the redeem script
-    //   const cmd = (txIn.scriptSig.cmds[
-    //   txIn.scriptSig.cmds.length - 1
-    //     ] as PushDataOpcode).data;
-    //   // turn redeem script into valid script by appending varint of its length
-    //   const rawRedeem = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
-    //   redeemScript = Script.parse(SmartBuffer.fromBuffer(rawRedeem));
-    //   if (redeemScript.isP2WPKH()) {
-    //     z = await this.sigHashBIP143(inputIndex, redeemScript);
-    //     witness = txIn.witness;
-    //   } else if (redeemScript.isP2WSH()) {
-    //     // last item of witness field contains witnessScript
-    //     const cmd = txIn.witness[txIn.witness.length - 1];
-    //     const rawWitness = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
-    //     const witnessScript = Script.parse(SmartBuffer.fromBuffer(rawWitness));
-    //     z = await this.sigHashBIP143(inputIndex, undefined, witnessScript);
-    //     witness = txIn.witness;
-    //   } else {
-    //     z = await this.sigHash(inputIndex, redeemScript);
-    //   }
-    // } else {
-    //   if (scriptPubkey.isP2WPKH()) {
-    //     z = await this.sigHashBIP143(inputIndex);
-    //     witness = txIn.witness;
-    //   } else if (scriptPubkey.isP2WSH()) {
-    //     // last item of witness field contains witnessScript
-    //     const cmd = txIn.witness[txIn.witness.length - 1];
-    //     const rawWitness = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
-    //     const witnessScript = Script.parse(SmartBuffer.fromBuffer(rawWitness));
-    //     z = await this.sigHashBIP143(inputIndex, undefined, witnessScript);
-    //     witness = txIn.witness;
-    //   } else if (scriptPubkey.isP2Taproot()) {
-    //     z = await this.sigHashSchnorr(inputIndex);
-    //     witness = txIn.witness;
-    //   } else {
-    //     z = await this.sigHash(inputIndex);
-    //   }
-    // }
-    // const combinedScript = txIn.scriptSig.add(scriptPubkey);
-    // return combinedScript.evaluate(z, witness || []);
+      } else {
+        z = await this.sigHash(inputIndex);
+      }
+    }
+
+    const combine = txIn.scriptSig.add(scriptPubkey);
+    return combine.evaluate(z, []);
   }
 
   async verify(): Promise<boolean> {
@@ -179,7 +148,7 @@ export class Tx {
     }
 
     for (let i = 0; i < this.txIns.length; i++) {
-      if (!this.verifyInput(i)) {
+      if (!(await this.verifyInput(i))) {
         return false;
       }
     }

@@ -36,7 +36,7 @@ export class Script {
   }
 
   // reference: https://github.com/jimmysong/pb-exercises/blob/master/session6/script.py#L135
-  evaluate(z: bigint): boolean {
+  evaluate(z: bigint, witness: Buffer[] = []): boolean {
     const cmds = [...this.cmds];
     const stack: Stack = [];
     const altStack: Stack = [];
@@ -76,6 +76,7 @@ export class Script {
             break;
         }
       } else {
+        // todo p231
         stack.push(cmd.data);
       }
     }
@@ -163,6 +164,62 @@ export class Script {
     const result = this.rawSerialize();
     const total = result.length;
     return Buffer.concat([encodeVarint(total), result]);
+  }
+
+  // OP_DUP (0x76), OP_HASH160 (0xa9), 20-byte hash, OP_EQUALVERIFY (0x88), OP_CHECKSIG (0xac)
+  isP2PKHScriptPubkey(): boolean {
+    return (
+      this.cmds.length === 5 &&
+      this.cmds[0] === OpCode.OP_DUP &&
+      this.cmds[1] === OpCode.OP_HASH160 &&
+      typeof this.cmds[2] === 'object' &&
+      this.cmds[2].data.byteLength === 20 &&
+      this.cmds[2].dataLength === 20 &&
+      this.cmds[3] === OpCode.OP_EQUALVERIFY &&
+      this.cmds[4] === OpCode.OP_CHECKSIG
+    );
+  }
+
+  isP2SHScriptPubkey(): boolean {
+    // OP_HASH160 (0xa9), 20-byte hash, OP_EQUAL (0x87)
+    return (
+      this.cmds.length === 3 &&
+      this.cmds[0] === OpCode.OP_HASH160 &&
+      typeof this.cmds[1] === 'object' &&
+      this.cmds[1].data.byteLength === 20 &&
+      this.cmds[1].dataLength === 20 &&
+      this.cmds[2] === OpCode.OP_EQUAL
+    );
+  }
+
+  isP2WPKHScriptPubkey(): boolean {
+    return (
+      this.cmds.length === 2 &&
+      this.cmds[0] === OpCode.OP_0 &&
+      typeof this.cmds[1] === 'object' &&
+      this.cmds[1].data.byteLength === 20 &&
+      this.cmds[1].dataLength === 20
+    );
+  }
+
+  isP2WSHScriptPubkey(): boolean {
+    return (
+      this.cmds.length === 2 &&
+      this.cmds[0] === OpCode.OP_0 &&
+      typeof this.cmds[1] === 'object' &&
+      this.cmds[1].data.byteLength === 32 &&
+      this.cmds[1].dataLength === 32
+    );
+  }
+
+  isP2TaprootScriptPubkey(): boolean {
+    return (
+      this.cmds.length === 2 &&
+      this.cmds[0] === OpCode.OP_1 &&
+      typeof this.cmds[1] === 'object' &&
+      this.cmds[1].data.byteLength === 32 &&
+      this.cmds[1].dataLength === 32
+    );
   }
 }
 
