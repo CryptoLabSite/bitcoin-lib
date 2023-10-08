@@ -2,12 +2,12 @@ import { OP_CODE_FUNCTIONS, OP_CODE_NAMES, OpCode, Stack } from './Op';
 import { SmartBuffer } from 'smart-buffer';
 import { encodeVarint, readVarint, toBufferLE } from './helper';
 
-type Element = {
+export type Element = {
   data: Buffer;
   dataLength: number;
 };
 
-type Cmd = OpCode | Element;
+export type Cmd = OpCode | Element;
 
 export class Script {
   constructor(public cmds: Cmd[] = []) {}

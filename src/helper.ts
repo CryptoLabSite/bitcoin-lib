@@ -34,6 +34,10 @@ export function hash160(data: Buffer | string) {
   return _ripemd160().update(sha256Result).digest();
 }
 
+export function sha256(s: Buffer): Buffer {
+  return _sha256().update(s).digest();
+}
+
 export function hash256(data: Buffer | string) {
   const sha256Result = _sha256().update(data).digest();
   return _sha256().update(sha256Result).digest();

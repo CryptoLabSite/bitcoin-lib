@@ -9,8 +9,8 @@ import {
   SIGHASH_ALL,
   toBigIntBE,
 } from './helper';
-import { Script } from './Script';
-import { PrivateKey } from './PrivateKey';
+import { Element, Script } from "./Script";
+import { PrivateKey, taggedHash } from "./PrivateKey";
 
 export class Tx {
   constructor(
@@ -121,25 +121,195 @@ export class Tx {
     return toBigIntBE(h256);
   }
 
+  async sigHashBIP143(
+    inputIndex: number,
+    redeemScript?: Script,
+    witnessScript?: Script
+  ): Promise<bigint> {
+    const txIn = this.txIns[inputIndex];
+    const s = new SmartBuffer();
+    s.writeUInt32LE(this.version);
+    s.writeBuffer(this.hashPrevouts());
+    s.writeBuffer(this.hashSequence());
+    s.writeBuffer(reverseBuffer(txIn.prevTx));
+    s.writeUInt32LE(txIn.prevIndex);
+    let scriptCode: Buffer;
+    if (witnessScript) {
+      scriptCode = witnessScript.serialize();
+    } else if (redeemScript) {
+      scriptCode = p2pkhScript(
+        (redeemScript.cmds[1] as PushDataOpcode).data
+      ).serialize();
+    } else {
+      const scriptPubkey = await txIn.scriptPubkey(this.testnet);
+      scriptCode = p2pkhScript(
+        (scriptPubkey.cmds[1] as PushDataOpcode).data
+      ).serialize();
+    }
+    s.writeBuffer(scriptCode);
+    s.writeBuffer(toBufferLE(await txIn.value(), 8));
+    s.writeUInt32LE(txIn.sequence);
+    s.writeBuffer(this.hashOutputs());
+    s.writeUInt32LE(this.locktime);
+    s.writeUInt32LE(SIGHASH_ALL);
+    return toBigIntBE(hash256(s.toBuffer()));
+  };
+
+  async sigHashSchnorr (inputIndex: number): Promise<bigint> {
+    const sigMsg = await this.sigMsg(inputIndex)
+    return toBigIntBE(taggedHash("TapSighash", sigMsg));
+  }
+
+  async sigMsg(inputIndex: number): Promise<Buffer> {
+    const s = new SmartBuffer();
+    s.writeUInt8(0) // EPOCH always 0
+    s.writeUInt8(0); // SIGHASH_ALL
+    s.writeUInt32LE(this.version);
+    s.writeUInt32LE(this.locktime);
+    s.writeBuffer(this.hashPrevouts(false));
+    s.writeBuffer(await this.hashAmounts(false));
+    s.writeBuffer(await this.hashScriptPubkeys(false));
+    s.writeBuffer(this.hashSequence(false));
+    s.writeBuffer(this.hashOutputs(false)); // Assume SIGHASH_ALL
+    s.writeUInt8(0); // spend type = taproot(0) + no annex(0) = 0
+    s.writeUInt32LE(inputIndex);
+    return s.toBuffer()
+  }
+
+  hashPrevouts = (double: boolean = true): Buffer => {
+    if (!this._hashPrevouts) {
+      const allPrevouts = new SmartBuffer();
+      const allSequence = new SmartBuffer();
+      for (const txIn of this.txIns) {
+        allPrevouts.writeBuffer(reverseBuffer(txIn.prevTx));
+        allPrevouts.writeUInt32LE(txIn.prevIndex);
+        allSequence.writeUInt32LE(txIn.sequence);
+      }
+      this._hashPrevouts = sha256(allPrevouts.toBuffer());
+      this._hashSequence = sha256(allSequence.toBuffer());
+    }
+    if (double) {
+      return sha256(this._hashPrevouts);
+    } else {
+      return this._hashPrevouts;
+    }
+  };
+
+  hashSequence = (double: boolean = true): Buffer => {
+    if (!this._hashSequence) {
+      this.hashPrevouts(); // will also calculate hashSequence
+    }
+    if (double) {
+      return sha256(this._hashSequence!);
+    } else {
+      return this._hashSequence!;
+    }
+  };
+
+  hashOutputs = (double: boolean = true): Buffer => {
+    if (!this._hashOutputs) {
+      const allOutputs = new SmartBuffer();
+      for (const txOut of this.txOuts) {
+        allOutputs.writeBuffer(txOut.serialize());
+      }
+      this._hashOutputs = sha256(allOutputs.toBuffer());
+    }
+    if (double) {
+      return sha256(this._hashOutputs);
+    } else {
+      return this._hashOutputs;
+    }
+  };
+
+  hashAmounts = async (double: boolean = true): Promise<Buffer> => {
+    if (!this._hashAmounts) {
+      const allAmounts = new SmartBuffer();
+      for (const [index, txIn] of this.txIns.entries()) {
+        let amount
+        if (this._previousOutputs) {
+          amount = this._previousOutputs[index].amount;
+        } else {
+          amount = await txIn.value(this.testnet);
+        }
+        allAmounts.writeBuffer(toBufferLE(amount, 8));
+      }
+      this._hashAmounts = sha256(allAmounts.toBuffer());
+    }
+    if (double) {
+      return sha256(this._hashAmounts);
+    } else {
+      return this._hashAmounts;
+    }
+  }
+
+  async hashScriptPubkeys(double: boolean = true): Promise<Buffer> {
+    if (!this._hashScriptPubkeys) {
+      const allScriptPubkeys = new SmartBuffer();
+      for (const [index, txIn] of this.txIns.entries()) {
+        let scriptPubkey;
+        if (this._previousOutputs) {
+          scriptPubkey = this._previousOutputs[index].scriptPubkey;
+        } else {
+          scriptPubkey = await txIn.scriptPubkey(this.testnet);
+        }
+        allScriptPubkeys.writeBuffer(scriptPubkey.serialize());
+      }
+      this._hashScriptPubkeys = sha256(allScriptPubkeys.toBuffer());
+    }
+    if (double) {
+      return sha256(this._hashScriptPubkeys);
+    } else {
+      return this._hashScriptPubkeys;
+    }
+  }
+
   // verify if the scriptSig can unlock the scriptPubkey
   async verifyInput(inputIndex: number): Promise<boolean> {
     const txIn = this.txIns[inputIndex];
     const scriptPubkey = await txIn.scriptPubkey(this.testnet);
     let redeemScript: Script | undefined;
     let z: bigint;
+    let witness: Buffer[] | undefined;
     if (scriptPubkey.isP2SHScriptPubkey()) {
+      // the last cmd has to be the RedeemScript to trigger
+      const cmd = (txIn.scriptSig.cmds[txIn.scriptSig.cmds.length - 1] as Element).data;
+      // parse the RedeemScript
+      const rawRedeem = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
+      redeemScript = Script.parse(SmartBuffer.fromBuffer(rawRedeem));
+
+      // the RedeemScript might be p2wpkh or p2wsh
+      if (redeemScript.isP2WPKHScriptPubkey()) {
+        z = await this.sigHashBIP143(inputIndex, redeemScript);
+        witness = txIn.witness;
+      } else if (redeemScript.isP2WSHScriptPubkey()) {
+        const cmd = txIn.witness[txIn.witness.length - 1];
+        const rawWitness = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
+        const witnessScript = Script.parse(SmartBuffer.fromBuffer(rawWitness));
+        z = await this.sigHashBIP143(inputIndex, witnessScript);
+        witness = txIn.witness;
+      } else {
+        z = await this.sigHash(inputIndex, redeemScript);
+      }
     } else {
       if (scriptPubkey.isP2WPKHScriptPubkey()) {
+        z = await this.sigHashBIP143(inputIndex);
+        witness = txIn.witness;
       } else if (scriptPubkey.isP2WSHScriptPubkey()) {
+        const cmd = txIn.witness[txIn.witness.length - 1];
+        const rawWitness = Buffer.concat([encodeVarint(cmd.byteLength), cmd]);
+        const witnessScript = Script.parse(SmartBuffer.fromBuffer(rawWitness));
+        z = await this.sigHashBIP143(inputIndex, witnessScript);
+        witness = txIn.witness;
       } else if (scriptPubkey.isP2TaprootScriptPubkey()) {
-
+        z = await this.sigHashSchnorr(inputIndex);
+        witness = txIn.witness;
       } else {
         z = await this.sigHash(inputIndex);
       }
     }
 
     const combine = txIn.scriptSig.add(scriptPubkey);
-    return combine.evaluate(z, []);
+    return combine.evaluate(z, witness || []);
   }
 
   async verify(): Promise<boolean> {

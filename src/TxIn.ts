@@ -10,6 +10,7 @@ export class TxIn {
     public prevIndex: number,
     public scriptSig: Script = new Script(),
     public sequence: number = 0xffffffff,
+    public witness: Buffer[] = [],
   ) {}
 
   toString(): string {
