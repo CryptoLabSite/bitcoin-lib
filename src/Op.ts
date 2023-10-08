@@ -1,3 +1,7 @@
+import { reverseBuffer } from './helper';
+import { S256Point } from './S256Point';
+import { Signature } from './Signature';
+
 export type Stack = Buffer[];
 
 export function op0(stack: Stack): boolean {
@@ -7,6 +11,115 @@ export function op0(stack: Stack): boolean {
 
 export function unsupportedFunc() {
   throw new Error('unsupported operation');
+}
+
+export function opCheckMultisig(stack: Stack, z: bigint): boolean {
+  if (stack.length < 1) {
+    return false;
+  }
+
+  const n = decodeNum(stack.pop()!);
+  if (stack.length < n + 1) {
+    return false;
+  }
+  const secPubkeys: Buffer[] = [];
+  for (let i = 0; i < n; i++) {
+    secPubkeys.push(stack.pop()!);
+  }
+
+  const m = decodeNum(stack.pop()!);
+  if (stack.length < m + 1) {
+    return false;
+  }
+  const derSignatures: Buffer[] = [];
+  for (let i = 0; i < m; i++) {
+    // signature is assumed to be using SIGHASH_ALL
+    let derSignature = stack.pop()!;
+    derSignature = derSignature.subarray(0, derSignature.length - 1);
+    derSignatures.push(derSignature);
+  }
+  // OP_CHECKMULTISIG bug
+  stack.pop();
+
+  try {
+    const points: S256Point[] = secPubkeys.map((secPubkey) =>
+      S256Point.parse(secPubkey),
+    );
+
+    const signatures: Signature[] = derSignatures.map((derSignature) =>
+      Signature.parse(derSignature),
+    );
+
+    for (const signature of signatures) {
+      if (points.length === 0) {
+        return false;
+      }
+
+      while (points.length > 0) {
+        const point = points.shift()!;
+        if (point.verify(z, signature)) {
+          break;
+        }
+      }
+
+      stack.push(encodeNum(1));
+    }
+  } catch (e) {
+    return false;
+  }
+
+  return true;
+}
+
+export function encodeNum(num: number): Buffer {
+  if (num === 0) {
+    return Buffer.alloc(0);
+  }
+
+  let absNum = Math.abs(num);
+  const negative = num < 0;
+  const result = [];
+  while (absNum) {
+    result.push(absNum & 0xff);
+    absNum >>= 8;
+  }
+  if (result[result.length - 1] & 0x80) {
+    if (negative) {
+      result.push(0x80);
+    } else {
+      result.push(0);
+    }
+  } else if (negative) {
+    result[result.length - 1] |= 0x80;
+  }
+
+  return Buffer.from(result);
+}
+
+export function decodeNum(element: Buffer): number {
+  if (element.equals(Buffer.alloc(0))) {
+    return 0;
+  }
+
+  const bigEndian = reverseBuffer(element);
+  let negative: boolean;
+  let result: number;
+  if (bigEndian[0] & 0x80) {
+    negative = true;
+    result = bigEndian[0] & 0x7f;
+  } else {
+    negative = false;
+    result = bigEndian[0];
+  }
+  for (const c of bigEndian.slice(1)) {
+    result <<= 8;
+    result += c;
+  }
+  if (negative) {
+    return -result;
+  } else {
+    return result;
+  }
 }
 
 // you can see more operations here: https://en.bitcoin.it/wiki/Script
@@ -186,7 +299,7 @@ export const OP_CODE_FUNCTIONS: OpCodeFunctions = {
   [OpCode.OP_CODESEPARATOR]: unsupportedFunc,
   [OpCode.OP_CHECKSIG]: unsupportedFunc,
   [OpCode.OP_CHECKSIGVERIFY]: unsupportedFunc,
-  [OpCode.OP_CHECKMULTISIG]: unsupportedFunc,
+  [OpCode.OP_CHECKMULTISIG]: opCheckMultisig,
   [OpCode.OP_CHECKMULTISIGVERIFY]: unsupportedFunc,
   [OpCode.OP_NOP1]: unsupportedFunc,
   [OpCode.OP_CHECKLOCKTIMEVERIFY]: unsupportedFunc,

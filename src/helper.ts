@@ -41,6 +41,7 @@ export function hash256(data: Buffer | string) {
 
 const BASE58_ALPHABET =
   '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
 export function encodeBase58(data: Buffer): string {
   let zeroCount = 0;
   for (const b of data) {
@@ -230,6 +231,28 @@ export function randomBigInt(max: bigint): bigint {
   }
 
   return toBigIntBE(buf);
+}
+
+export function h160ToP2PKHAddress(h160: Buffer, testnet = false): string {
+  let prefix: Buffer;
+  if (testnet) {
+    prefix = Buffer.alloc(1, 0x6f);
+  } else {
+    prefix = Buffer.alloc(1, 0x00);
+  }
+
+  return encodeBase58Checksum(Buffer.concat([prefix, h160]));
+}
+
+export function h160ToP2SHAddress(h160: Buffer, testnet = false): string {
+  let prefix: Buffer;
+  if (testnet) {
+    prefix = Buffer.alloc(1, 0xc4);
+  } else {
+    prefix = Buffer.alloc(1, 0x05);
+  }
+
+  return encodeBase58Checksum(Buffer.concat([prefix, h160]));
 }
 
 export const SIGHASH_ALL = 1;
