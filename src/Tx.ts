@@ -5,14 +5,20 @@ import {
   encodeVarint,
   hash256,
   readVarint,
-  reverseBuffer,
+  reverseBuffer, sha256,
   SIGHASH_ALL,
-  toBigIntBE,
-} from './helper';
-import { Element, Script } from "./Script";
+  toBigIntBE, toBufferLE
+} from "./helper";
+import { Element, p2pkhScript, Script } from "./Script";
 import { PrivateKey, taggedHash } from "./PrivateKey";
 
 export class Tx {
+  _hashPrevouts?: Buffer;
+  _hashSequence?: Buffer;
+  _hashOutputs?: Buffer;
+  _hashAmounts?: Buffer;
+  _hashScriptPubkeys?: Buffer;
+  _previousOutputs?: TxOut[]
   constructor(
     public version: number,
     public txIns: TxIn[],
@@ -138,12 +144,12 @@ export class Tx {
       scriptCode = witnessScript.serialize();
     } else if (redeemScript) {
       scriptCode = p2pkhScript(
-        (redeemScript.cmds[1] as PushDataOpcode).data
+        (redeemScript.cmds[1] as Element).data
       ).serialize();
     } else {
       const scriptPubkey = await txIn.scriptPubkey(this.testnet);
       scriptCode = p2pkhScript(
-        (scriptPubkey.cmds[1] as PushDataOpcode).data
+        (scriptPubkey.cmds[1] as Element).data
       ).serialize();
     }
     s.writeBuffer(scriptCode);

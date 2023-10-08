@@ -3,7 +3,7 @@ import { Script } from './Script';
 import { SmartBuffer } from 'smart-buffer';
 
 export class TxOut {
-  constructor(public amount: bigint, public scriptPubKey: Script) {}
+  constructor(public amount: bigint, public scriptPubkey: Script) {}
 
   static parse(s: SmartBuffer): TxOut {
     const amount = toBigIntLE(s.readBuffer(8));
@@ -12,12 +12,12 @@ export class TxOut {
   }
 
   toString(): string {
-    return `${this.amount}:${this.scriptPubKey}`;
+    return `${this.amount}:${this.scriptPubkey}`;
   }
 
   serialize(): Buffer {
     const amount = toBufferLE(this.amount, 8);
-    const scriptPubKey = this.scriptPubKey.serialize();
+    const scriptPubKey = this.scriptPubkey.serialize();
     return Buffer.concat([amount, scriptPubKey]);
   }
 }

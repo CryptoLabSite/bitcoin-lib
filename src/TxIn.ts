@@ -46,6 +46,6 @@ export class TxIn {
 
   async scriptPubkey(testnet = false): Promise<Script> {
     const tx = await this.fetchTx(testnet);
-    return tx.txOuts[this.prevIndex].scriptPubKey;
+    return tx.txOuts[this.prevIndex].scriptPubkey;
   }
 }
