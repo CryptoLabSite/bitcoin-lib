@@ -261,6 +261,12 @@ export function h160ToP2SHAddress(h160: Buffer, testnet = false): string {
   return encodeBase58Checksum(Buffer.concat([prefix, h160]));
 }
 
+export function bitsToTarget(bits: Buffer): bigint {
+  const exponent = bits[bits.byteLength - 1];
+  const coefficient = toBigIntLE(bits.subarray(0, bits.byteLength - 1));
+  return BigInt(coefficient) * 256n ** BigInt(exponent - 3);
+}
+
 export const SIGHASH_ALL = 1;
 export const SIGHASH_NONE = 2;
 export const SIGHASH_SINGLE = 3;

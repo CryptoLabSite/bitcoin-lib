@@ -1,7 +1,13 @@
 import crypto from 'crypto';
 import { G, N, S256Point } from './S256Point';
 import { Signature } from './Signature';
-import { encodeBase58Checksum, pow, sha256, toBigIntBE, toBufferBE } from "./helper";
+import {
+  encodeBase58Checksum,
+  pow,
+  sha256,
+  toBigIntBE,
+  toBufferBE,
+} from './helper';
 
 export class PrivateKey {
   public point: S256Point;
@@ -89,6 +95,6 @@ export class PrivateKey {
 }
 
 export function taggedHash(tag: string, msg: Buffer): Buffer {
-  const tagHash = Buffer.from(tag, "utf8");
+  const tagHash = Buffer.from(tag, 'utf8');
   return sha256(Buffer.concat([tagHash, tagHash, msg]));
 }
