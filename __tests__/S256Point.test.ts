@@ -1,5 +1,5 @@
-import { G, S256Point } from '../src/S256Point';
-import { Signature } from '../src/Signature';
+import { G, S256Point } from '../ts_src/S256Point';
+import { Signature } from '../ts_src/Signature';
 
 describe('S256PointTest', () => {
   test('sec', () => {

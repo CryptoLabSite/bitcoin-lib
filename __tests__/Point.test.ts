@@ -1,4 +1,4 @@
-import { Point } from '../src/Point';
+import { Point } from '../ts_src/Point';
 
 describe('PointTest', () => {
   test('ne', () => {

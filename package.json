@@ -2,11 +2,12 @@
   "name": "bitcoin-lib",
   "version": "1.0.0",
   "description": "A simple bitcoin library written in JavaScript.",
-  "main": "",
+  "main": "ts_src/index.js",
+  "types": "./src/index.d.ts",
   "scripts": {
-    "format": "prettier --write \"src/**/*.ts\" \"__tests__/**/*.ts\"",
+    "format": "prettier --write \\\"ts_src/**/*.ts\\\" \\\"__tests__/**/*.ts\\\"",
     "lint": "eslint \"{src,__test__}/**/*.ts\" --fix",
-    "build": "tsc",
+    "build": "tsc -p ./tsconfig.json",
     "test": "jest"
   },
   "repository": {

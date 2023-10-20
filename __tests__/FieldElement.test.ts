@@ -1,4 +1,4 @@
-import { FieldElement } from '../src/FieldElement';
+import { FieldElement } from '../ts_src/FieldElement';
 
 describe('FieldElementTest', () => {
   test('ne', () => {

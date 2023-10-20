@@ -1,5 +1,5 @@
-import { FieldElement } from '../src/FieldElement';
-import { FinitePoint } from '../src/FinitePoint';
+import { FieldElement } from '../ts_src/FieldElement';
+import { FinitePoint } from '../ts_src/FinitePoint';
 
 // reference: https://github.com/jimmysong/programmingbitcoin/blob/master/code-ch13/ecc.py#L261
 describe('FinitePointTest', () => {

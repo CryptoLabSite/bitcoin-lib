@@ -1,6 +1,6 @@
-import { randomBigInt } from '../src/helper';
-import { PrivateKey } from '../src/PrivateKey';
-import { N } from '../src/S256Point';
+import { randomBigInt } from '../ts_src/helper';
+import { PrivateKey } from '../ts_src/PrivateKey';
+import { N } from '../ts_src/S256Point';
 
 describe('PrivateKeyTest', () => {
   test('sign', () => {

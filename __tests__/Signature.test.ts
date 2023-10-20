@@ -1,5 +1,5 @@
-import { randomBigInt } from '../src/helper';
-import { Signature } from '../src/Signature';
+import { randomBigInt } from '../ts_src/helper';
+import { Signature } from '../ts_src/Signature';
 
 describe('SignatureTest', () => {
   test('der', () => {

@@ -1,4 +1,4 @@
-import { toBigIntLE, toBufferLE } from '../src/helper';
+import { toBigIntLE, toBufferLE } from '../ts_src/helper';
 
 describe('HelperTest', () => {
   test('toBigIntLE', () => {
